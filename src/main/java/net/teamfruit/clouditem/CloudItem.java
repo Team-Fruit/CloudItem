@@ -4,7 +4,7 @@ import net.minecraftforge.fml.common.event.*;
 
 import net.minecraftforge.fml.common.Mod;
 
-@Mod(modid = Reference.MODID, name = Reference.NAME, version = Reference.VERSION, serverSideOnly = true, acceptableRemoteVersions = "*")
+@Mod(modid = Reference.MODID, name = Reference.NAME, version = Reference.VERSION, acceptableRemoteVersions = "*")
 public class CloudItem {
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {

@@ -51,10 +51,9 @@ public class ModCommand extends CommandTreeBase {
     }
 
     public static URI getPlayerURI(EntityPlayerMP playerMP) {
-        URI entrypoint = URI.create(ModConfig.entrypoint);
+        URI entrypoint = URI.create(ModConfig.api.entrypoint);
         URI playerEntrypoint = URIUtils.resolve(entrypoint, "v1/players/");
-        URI playerData = URIUtils.resolve(playerEntrypoint, playerMP.getUniqueID().toString());
-        return playerData;
+        return URIUtils.resolve(playerEntrypoint, playerMP.getUniqueID().toString());
     }
 
     @Override
@@ -104,14 +103,14 @@ public class ModCommand extends CommandTreeBase {
 
             if (dataExists) {
                 playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                        ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.checkExistsMessage), playerMP));
+                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkExistsMessage), playerMP));
             } else {
                 playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                        ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.checkNotExistsMessage), playerMP));
+                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkNotExistsMessage), playerMP));
             }
 
         } catch (IOException e) {
-            throw new CommandException(ModConfig.Messages.checkFailedMessage);
+            throw new CommandException(ModConfig.messages.checkFailedMessage);
         }
     }
 }

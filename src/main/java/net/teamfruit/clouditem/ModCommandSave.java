@@ -53,7 +53,7 @@ public class ModCommandSave extends CommandBase {
         if (!playerMP.inventory.isEmpty()) {
             if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
                 playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                        ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.downloadOverwriteMessage), playerMP));
+                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.downloadOverwriteMessage), playerMP));
                 return;
             }
         }
@@ -62,7 +62,7 @@ public class ModCommandSave extends CommandBase {
             URI playerData = ModCommand.getPlayerURI(playerMP);
 
             playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.uploadBeginMessage), playerMP));
+                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadBeginMessage), playerMP));
 
             boolean dataExists = false;
             {
@@ -78,13 +78,13 @@ public class ModCommandSave extends CommandBase {
             if (dataExists) {
                 if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
                     playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                            ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.uploadOverwriteMessage), playerMP));
+                            ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadOverwriteMessage), playerMP));
                     return;
                 }
             }
 
             playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.uploadBeginMessage), playerMP));
+                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadBeginMessage), playerMP));
 
             if (playerMP.inventory.isEmpty()) {
                 final HttpUriRequest req = new HttpDelete(playerData);
@@ -116,10 +116,10 @@ public class ModCommandSave extends CommandBase {
             }
 
             playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.uploadEndMessage), playerMP));
+                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadEndMessage), playerMP));
 
         } catch (IOException e) {
-            throw new CommandException(ModConfig.Messages.uploadFailedMessage);
+            throw new CommandException(ModConfig.messages.uploadFailedMessage);
         }
     }
 }

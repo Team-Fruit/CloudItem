@@ -53,7 +53,7 @@ public class ModCommandLoad extends CommandBase {
         if (!playerMP.inventory.isEmpty()) {
             if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
                 playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                        ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.downloadOverwriteMessage), playerMP));
+                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.downloadOverwriteMessage), playerMP));
                 return;
             }
         }
@@ -62,7 +62,7 @@ public class ModCommandLoad extends CommandBase {
             URI playerData = ModCommand.getPlayerURI(playerMP);
 
             playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.downloadBeginMessage), playerMP));
+                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.downloadBeginMessage), playerMP));
 
             NBTTagCompound tags;
             {
@@ -92,10 +92,10 @@ public class ModCommandLoad extends CommandBase {
             playerMP.inventory.markDirty();
 
             playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.Messages.downloadEndMessage), playerMP));
+                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.downloadEndMessage), playerMP));
 
         } catch (IOException e) {
-            throw new CommandException(ModConfig.Messages.downloadFailedMessage);
+            throw new CommandException(ModConfig.messages.downloadFailedMessage);
         }
     }
 }
