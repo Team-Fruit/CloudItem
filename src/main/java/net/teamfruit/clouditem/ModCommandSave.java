@@ -6,18 +6,22 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentUtils;
-import net.minecraftforge.common.util.Constants;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpResponseException;
-import org.apache.http.client.methods.*;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.client.utils.URIUtils;
-import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.util.EntityUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -50,29 +54,28 @@ public class ModCommandSave extends CommandBase {
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
 
-        if (!playerMP.inventory.isEmpty()) {
-            if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
-                playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.downloadOverwriteMessage), playerMP));
-                return;
-            }
-        }
-
         try {
             URI playerData = ModCommand.getPlayerURI(playerMP);
 
-            playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadBeginMessage), playerMP));
+            HttpEntity entity = null;
 
-            boolean dataExists = false;
-            {
+            if (playerMP.inventory.isEmpty()) {
+                playerMP.sendMessage(TextComponentUtils.processComponent(server,
+                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkLocalNotExistsMessage), playerMP));
+                return;
+            }
+
+            boolean dataExists;
+            try {
                 final HttpUriRequest req = new HttpHead(playerData);
                 final HttpClientContext context = HttpClientContext.create();
                 final HttpResponse response = Downloader.downloader.client.execute(req, context);
+                entity = response.getEntity();
 
                 final int statusCode = response.getStatusLine().getStatusCode();
-                if (statusCode != HttpStatus.SC_OK)
-                    dataExists = true;
+                dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
+            } finally {
+                EntityUtils.consume(entity);
             }
 
             if (dataExists) {
@@ -86,40 +89,37 @@ public class ModCommandSave extends CommandBase {
             playerMP.sendMessage(TextComponentUtils.processComponent(server,
                     ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadBeginMessage), playerMP));
 
-            if (playerMP.inventory.isEmpty()) {
-                final HttpUriRequest req = new HttpDelete(playerData);
+            NBTTagCompound tags = new NBTTagCompound();
+            NBTTagList tagList = new NBTTagList();
+            playerMP.inventory.writeToNBT(tagList);
+            tags.setTag("inventory", tagList);
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            CompressedStreamTools.writeCompressed(tags, output);
+
+            try {
+                final HttpPut req = new HttpPut(playerData);
+                MultipartEntityBuilder multipart = MultipartEntityBuilder.create();
+                multipart.addBinaryBody("player.dat", output.toByteArray(), ContentType.APPLICATION_OCTET_STREAM, "nbt");
+                req.setEntity(multipart.build());
                 final HttpClientContext context = HttpClientContext.create();
                 final HttpResponse response = Downloader.downloader.client.execute(req, context);
+                entity = response.getEntity();
 
                 final int statusCode = response.getStatusLine().getStatusCode();
-                if (statusCode != HttpStatus.SC_OK)
-                    throw new HttpResponseException(statusCode, "Failed to delete");
-            } else {
-                NBTTagCompound tags = new NBTTagCompound();
-                playerMP.inventory.writeToNBT(tags.getTagList("inventory", Constants.NBT.TAG_COMPOUND));
-                ByteArrayOutputStream output = new ByteArrayOutputStream();
-                CompressedStreamTools.writeCompressed(tags, output);
-
-                {
-                    final HttpPost req = new HttpPost(playerData);
-                    req.setEntity(new ByteArrayEntity(output.toByteArray()));
-                    final HttpClientContext context = HttpClientContext.create();
-                    final HttpResponse response = Downloader.downloader.client.execute(req, context);
-
-                    final int statusCode = response.getStatusLine().getStatusCode();
-                    if (statusCode != HttpStatus.SC_OK)
-                        throw new HttpResponseException(statusCode, "Failed to upload");
-                }
-
-                playerMP.inventory.clear();
-                playerMP.inventory.markDirty();
+                if (!(statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT))
+                    throw new HttpResponseException(statusCode, "Failed to upload");
+            } finally {
+                EntityUtils.consume(entity);
             }
+
+            playerMP.inventory.clear();
+            playerMP.inventory.markDirty();
 
             playerMP.sendMessage(TextComponentUtils.processComponent(server,
                     ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadEndMessage), playerMP));
 
         } catch (IOException e) {
-            throw new CommandException(ModConfig.messages.uploadFailedMessage);
+            throw new CommandException(ModConfig.messages.uploadFailedMessage, e);
         }
     }
 }

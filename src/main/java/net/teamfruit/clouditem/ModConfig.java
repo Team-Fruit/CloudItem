@@ -33,15 +33,23 @@ public class ModConfig {
 
         @Config.Name("Data Available Message")
         @Config.Comment({ "the text that is shown when a player data available on Cloud", "must be formatted in /tellraw nbt format" })
-        public String checkExistsMessage = "{\"text\":\"Your player data is available on Cloud. Type '/cloud load' to continue\"}";
+        public String checkExistsMessage = "{\"text\":\"Your player data is available on Cloud. [@@DATE@@] Type '/cloud load' to use it!\"}";
 
         @Config.Name("Data Unavailable Message")
         @Config.Comment({ "the text that is shown when a player data unavailable on Cloud", "must be formatted in /tellraw nbt format" })
-        public String checkNotExistsMessage = "{\"text\":\"No data is available\"}";
+        public String checkNotExistsMessage = "{\"text\":\"Nothing to download\"}";
+
+        @Config.Name("Local Data Unavailable Message")
+        @Config.Comment({ "the text that is shown when a player data unavailable on Local", "must be formatted in /tellraw nbt format" })
+        public String checkLocalNotExistsMessage = "{\"text\":\"Nothing to upload\"}";
 
         @Config.Name("Data Check Failed Message")
         @Config.Comment({ "the text that is shown when the data check fails" })
         public String checkFailedMessage = "Failed to Check";
+
+        @Config.Name("Data Date Message Format")
+        @Config.Comment({ "the text that is shown when the data check fails" })
+        public String checkDataDateMessageFormat = "yyyy/MM/dd (E) H:mm";
 
         @Config.Name("Data Downloading Message")
         @Config.Comment({ "the text that is shown when the data is downloading", "must be formatted in /tellraw nbt format" })
@@ -55,9 +63,9 @@ public class ModConfig {
         @Config.Comment({ "the text that is shown when the data download fails" })
         public String downloadFailedMessage = "Failed to Download";
 
-        @Config.Name("Server Data Overwriting Message")
-        @Config.Comment({ "the text that is shown when the server data will be overwritten", "must be formatted in /tellraw nbt format" })
-        public String downloadOverwriteMessage = "{\"text\":\"Your Server Data will be overwritten by the Cloud Data. Type '/cloud load force' to continue\"}";
+        @Config.Name("Your Data Overwriting Message")
+        @Config.Comment({ "the text that is shown when the local data will be overwritten", "must be formatted in /tellraw nbt format" })
+        public String downloadOverwriteMessage = "{\"text\":\"Your Local Data will be overwritten by the Cloud Data. Type '/cloud load force' to continue\"}";
 
         @Config.Name("Data Uploading Message")
         @Config.Comment({ "the text that is shown when the data is uploading", "must be formatted in /tellraw nbt format" })
@@ -73,7 +81,7 @@ public class ModConfig {
 
         @Config.Name("Cloud Data Overwriting Message")
         @Config.Comment({ "the text that is shown when the cloud data will be overwritten", "must be formatted in /tellraw nbt format" })
-        public String uploadOverwriteMessage = "{\"text\":\"Your Cloud Data will be overwritten by the Server Data. Type '/cloud save force' to continue\"}";
+        public String uploadOverwriteMessage = "{\"text\":\"Your Cloud Data will be overwritten by the Local Data. Type '/cloud save force' to continue\"}";
     }
 
     @Mod.EventBusSubscriber(modid = Reference.MODID)

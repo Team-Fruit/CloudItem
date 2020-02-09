@@ -7,6 +7,12 @@ buildscript {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
     }
 }
+
+// Plugins
+plugins {
+    id 'com.github.johnrengelman.shadow' version '2.0.1'
+}
+
 apply plugin: 'net.minecraftforge.gradle.forge'
 //Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 
@@ -33,6 +39,10 @@ minecraft {
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
 }
 
+reobf {
+    shadowJar { mappingType = 'SEARGE' }
+}
+
 dependencies {
     // you may put jars on which you depend on in ./libs
     // or you may define them like so..
@@ -55,6 +65,13 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
+    shadow ('org.apache.httpcomponents:httpmime:4.3.3') { transitive=false }
+}
+
+shadowJar {
+    relocate 'org.apache.http.entity.mime', 'net.teamfruit.clouditem.lib.org.apache.http.entity.mime'
+    classifier 'universal'
+    configurations = [project.configurations.shadow]
 }
 
 processResources {
