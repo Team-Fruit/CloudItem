@@ -1,40 +1,15 @@
 package net.teamfruit.clouditem;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.SocketAddress;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-
-import net.minecraft.client.Minecraft;
 import org.apache.http.Header;
-import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.config.RequestConfig.Builder;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContextBuilder;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
+
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Downloader {
 	public static final int timeout = 3000;
@@ -50,16 +25,6 @@ public class Downloader {
 		if (timeout>0) {
 			requestConfig.setConnectTimeout(timeout);
 			requestConfig.setSocketTimeout(timeout);
-		}
-
-		final Proxy proxy = Minecraft.getMinecraft().getProxy();
-		if (proxy!=null&&!Proxy.NO_PROXY.equals(proxy)) {
-			final SocketAddress saddr = proxy.address();
-			if (saddr instanceof InetSocketAddress) {
-				final InetSocketAddress inetsaddr = (InetSocketAddress) saddr;
-				final HttpHost httpproxy = new HttpHost(inetsaddr.getAddress(), inetsaddr.getPort());
-				requestConfig.setProxy(httpproxy);
-			}
 		}
 
 		final List<Header> headers = new ArrayList<>();
