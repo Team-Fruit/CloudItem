@@ -1,0 +1,16 @@
+[
+{
+  "modid": "clouditem",
+  "name": "Cloud Item",
+  "description": "Upload Item to Cloud / Download Item from Cloud",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://github.com/Team-Fruit/CloudItem",
+  "updateUrl": "https://github.com/Team-Fruit/CloudItem/releases",
+  "authorList": ["Kamesuta"],
+  "credits": "2019 TeamFruit",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
