@@ -97,7 +97,7 @@ public class ModCommand extends CommandTreeBase {
                 final HttpResponse response = Downloader.downloader.client.execute(req, context);
 
                 final int statusCode = response.getStatusLine().getStatusCode();
-                if (statusCode != HttpStatus.SC_OK)
+                if (statusCode == HttpStatus.SC_OK)
                     dataExists = true;
             }
 

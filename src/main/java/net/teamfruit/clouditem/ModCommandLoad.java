@@ -61,9 +61,6 @@ public class ModCommandLoad extends CommandBase {
         try {
             URI playerData = ModCommand.getPlayerURI(playerMP);
 
-            playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.downloadBeginMessage), playerMP));
-
             NBTTagCompound tags;
             {
                 final HttpUriRequest req = new HttpGet(playerData);

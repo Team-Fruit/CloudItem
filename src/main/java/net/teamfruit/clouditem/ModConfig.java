@@ -65,7 +65,7 @@ public class ModConfig {
 
         @Config.Name("Data Upload Finish Message")
         @Config.Comment({ "the text that is shown when the data is uploaded", "must be formatted in /tellraw nbt format" })
-        public String uploadEndMessage = "{\"text\":\"Finished Data Downloading!\"}";
+        public String uploadEndMessage = "{\"text\":\"Finished Data Uploading!\"}";
 
         @Config.Name("Data Upload Failed Message")
         @Config.Comment({ "the text that is shown when the data upload fails" })
