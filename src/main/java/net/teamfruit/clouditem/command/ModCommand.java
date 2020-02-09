@@ -1,4 +1,4 @@
-package net.teamfruit.clouditem;
+package net.teamfruit.clouditem.command;
 
 import com.google.common.base.Charsets;
 import net.minecraft.command.CommandException;
@@ -9,6 +9,10 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.server.command.CommandTreeBase;
 import net.minecraftforge.server.command.CommandTreeHelp;
+import net.teamfruit.clouditem.Log;
+import net.teamfruit.clouditem.ModConfig;
+import net.teamfruit.clouditem.util.Downloader;
+import net.teamfruit.clouditem.util.ServerThreadExecutor;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.http.HttpEntity;
@@ -55,6 +59,7 @@ public class ModCommand extends CommandTreeBase {
     public ModCommand() {
         addSubcommand(new ModCommandLoad());
         addSubcommand(new ModCommandSave());
+        addSubcommand(new ModCommandAdmin());
         addSubcommand(new CommandTreeHelp(this));
     }
 

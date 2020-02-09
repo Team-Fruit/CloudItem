@@ -1,4 +1,4 @@
-package net.teamfruit.clouditem;
+package net.teamfruit.clouditem.util;
 
 import org.apache.http.Header;
 import org.apache.http.client.config.RequestConfig;

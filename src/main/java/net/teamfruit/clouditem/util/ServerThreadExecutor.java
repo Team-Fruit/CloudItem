@@ -1,4 +1,4 @@
-package net.teamfruit.clouditem;
+package net.teamfruit.clouditem.util;
 
 import com.google.common.util.concurrent.AbstractListeningExecutorService;
 

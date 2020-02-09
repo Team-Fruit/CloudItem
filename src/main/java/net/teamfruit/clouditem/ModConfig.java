@@ -19,7 +19,6 @@ public class ModConfig {
 
     public static class Api {
 
-        @Config.RequiresWorldRestart
         @Config.Name("Cloud API Entry Point")
         @Config.Comment({ "The Entry Point of Cloud API" })
         public String entrypoint = "";
