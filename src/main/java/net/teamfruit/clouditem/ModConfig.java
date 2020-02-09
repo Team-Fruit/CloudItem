@@ -44,8 +44,8 @@ public class ModConfig {
         public String checkLocalNotExistsMessage = "{\"text\":\"Nothing to upload\"}";
 
         @Config.Name("Data Check Failed Message")
-        @Config.Comment({ "the text that is shown when the data check fails" })
-        public String checkFailedMessage = "Failed to Check";
+        @Config.Comment({ "the text that is shown when the data check fails", "must be formatted in /tellraw nbt format" })
+        public String checkFailedMessage = "{\"text\":\"Failed to Check\"}";
 
         @Config.Name("Data Date Message Format")
         @Config.Comment({ "the text that is shown when the data check fails" })
@@ -60,8 +60,8 @@ public class ModConfig {
         public String downloadEndMessage = "{\"text\":\"Finished Data Downloading!\"}";
 
         @Config.Name("Data Download Failed Message")
-        @Config.Comment({ "the text that is shown when the data download fails" })
-        public String downloadFailedMessage = "Failed to Download";
+        @Config.Comment({ "the text that is shown when the data download fails", "must be formatted in /tellraw nbt format" })
+        public String downloadFailedMessage = "{\"text\":\"Failed to Download\"}";
 
         @Config.Name("Your Data Overwriting Message")
         @Config.Comment({ "the text that is shown when the local data will be overwritten", "must be formatted in /tellraw nbt format" })
@@ -76,8 +76,8 @@ public class ModConfig {
         public String uploadEndMessage = "{\"text\":\"Finished Data Uploading!\"}";
 
         @Config.Name("Data Upload Failed Message")
-        @Config.Comment({ "the text that is shown when the data upload fails" })
-        public String uploadFailedMessage = "Failed to Upload";
+        @Config.Comment({ "the text that is shown when the data upload fails", "must be formatted in /tellraw nbt format" })
+        public String uploadFailedMessage = "{\"text\":\"Failed to Upload\"}";
 
         @Config.Name("Cloud Data Overwriting Message")
         @Config.Comment({ "the text that is shown when the cloud data will be overwritten", "must be formatted in /tellraw nbt format" })

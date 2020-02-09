@@ -8,7 +8,6 @@ import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentUtils;
 import net.minecraftforge.common.util.Constants;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
@@ -22,8 +21,9 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.util.EntityUtils;
 
-import java.io.IOException;
 import java.net.URI;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 
 public class ModCommandLoad extends CommandBase {
     @Override
@@ -52,78 +52,102 @@ public class ModCommandLoad extends CommandBase {
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
 
+        URI playerData;
         try {
-            URI playerData = ModCommand.getPlayerURI(playerMP);
-
-            HttpEntity entity = null;
-
-            boolean dataExists;
-            try {
-                final HttpUriRequest req = new HttpHead(playerData);
-                final HttpClientContext context = HttpClientContext.create();
-                final HttpResponse response = Downloader.downloader.client.execute(req, context);
-                entity = response.getEntity();
-
-                final int statusCode = response.getStatusLine().getStatusCode();
-                dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
-            } finally {
-                EntityUtils.consume(entity);
-            }
-
-            if (!dataExists) {
-                playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkNotExistsMessage), playerMP));
-                return;
-            }
-
-            if (!playerMP.inventory.isEmpty()) {
-                if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
-                    playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                            ITextComponent.Serializer.jsonToComponent(ModConfig.messages.downloadOverwriteMessage), playerMP));
-                    return;
-                }
-            }
-
-            playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.downloadBeginMessage), playerMP));
-
-            NBTTagCompound tags;
-            try {
-                final HttpUriRequest req = new HttpGet(playerData);
-                final HttpClientContext context = HttpClientContext.create();
-                final HttpResponse response = Downloader.downloader.client.execute(req, context);
-                entity = response.getEntity();
-
-                final int statusCode = response.getStatusLine().getStatusCode();
-                if (!(statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT))
-                    throw new HttpResponseException(statusCode, "Failed to get");
-
-                tags = CompressedStreamTools.readCompressed(entity.getContent());
-            } finally {
-                EntityUtils.consume(entity);
-            }
-
-            try {
-                final HttpUriRequest req = new HttpDelete(playerData);
-                final HttpClientContext context = HttpClientContext.create();
-                final HttpResponse response = Downloader.downloader.client.execute(req, context);
-                entity = response.getEntity();
-
-                final int statusCode = response.getStatusLine().getStatusCode();
-                if (!(statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT))
-                    throw new HttpResponseException(statusCode, "Failed to delete");
-            } finally {
-                EntityUtils.consume(entity);
-            }
-
-            playerMP.inventory.readFromNBT(tags.getTagList("inventory", Constants.NBT.TAG_COMPOUND));
-            playerMP.inventory.markDirty();
-
-            playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.downloadEndMessage), playerMP));
-
-        } catch (IOException e) {
-            throw new CommandException(ModConfig.messages.downloadFailedMessage, e);
+            playerData = ModCommand.getPlayerURI(playerMP);
+        } catch (Exception e) {
+            Log.log.warn("Failed to upload", e);
+            ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                    ModConfig.messages.uploadFailedMessage));
+            return;
         }
+
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpEntity entity = null;
+
+                boolean dataExists;
+                try {
+                    final HttpUriRequest req = new HttpHead(playerData);
+                    final HttpClientContext context = HttpClientContext.create();
+                    final HttpResponse response = Downloader.downloader.client.execute(req, context);
+                    entity = response.getEntity();
+
+                    final int statusCode = response.getStatusLine().getStatusCode();
+                    dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
+                } finally {
+                    EntityUtils.consume(entity);
+                }
+
+                if (!dataExists) {
+                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                            ModConfig.messages.checkNotExistsMessage));
+                    throw new CancellationException();
+                }
+
+                if (!playerMP.inventory.isEmpty()) {
+                    if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
+                        ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                                ModConfig.messages.downloadOverwriteMessage));
+                        throw new CancellationException();
+                    }
+                }
+
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.downloadBeginMessage));
+
+                NBTTagCompound tags;
+                try {
+                    final HttpUriRequest req = new HttpGet(playerData);
+                    final HttpClientContext context = HttpClientContext.create();
+                    final HttpResponse response = Downloader.downloader.client.execute(req, context);
+                    entity = response.getEntity();
+
+                    final int statusCode = response.getStatusLine().getStatusCode();
+                    if (!(statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT))
+                        throw new HttpResponseException(statusCode, "Failed to get");
+
+                    tags = CompressedStreamTools.readCompressed(entity.getContent());
+                } finally {
+                    EntityUtils.consume(entity);
+                }
+
+                try {
+                    final HttpUriRequest req = new HttpDelete(playerData);
+                    final HttpClientContext context = HttpClientContext.create();
+                    final HttpResponse response = Downloader.downloader.client.execute(req, context);
+                    entity = response.getEntity();
+
+                    final int statusCode = response.getStatusLine().getStatusCode();
+                    if (!(statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT))
+                        throw new HttpResponseException(statusCode, "Failed to delete");
+                } finally {
+                    EntityUtils.consume(entity);
+                }
+
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.downloadEndMessage));
+
+                return tags;
+
+            } catch (Exception e) {
+                Log.log.warn("Failed to download", e);
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.downloadFailedMessage));
+                throw new CancellationException();
+            }
+
+        }).thenAcceptAsync(tags -> {
+            try {
+                playerMP.inventory.readFromNBT(tags.getTagList("inventory", Constants.NBT.TAG_COMPOUND));
+                playerMP.inventory.markDirty();
+            } catch (Exception e) {
+                Log.log.warn("Failed to download", e);
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.downloadFailedMessage));
+                throw new CancellationException();
+            }
+
+        }, ServerThreadExecutor.INSTANCE);
     }
 }

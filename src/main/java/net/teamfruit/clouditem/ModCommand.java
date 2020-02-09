@@ -7,7 +7,6 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentUtils;
 import net.minecraftforge.server.command.CommandTreeBase;
 import net.minecraftforge.server.command.CommandTreeHelp;
 import org.apache.commons.io.IOUtils;
@@ -22,11 +21,11 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.util.EntityUtils;
 
-import java.io.IOException;
 import java.net.URI;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 
 public class ModCommand extends CommandTreeBase {
     public static class Level
@@ -65,6 +64,12 @@ public class ModCommand extends CommandTreeBase {
         return URIUtils.resolve(playerEntrypoint, playerMP.getUniqueID().toString() + "/");
     }
 
+    public static void sendMessage(EntityPlayerMP playerMP, ITextComponent message) {
+        CompletableFuture.runAsync(() -> {
+            playerMP.sendMessage(message);
+        }, ServerThreadExecutor.INSTANCE);
+    }
+
     @Override
     public String getName() {
         return "cloud";
@@ -96,51 +101,58 @@ public class ModCommand extends CommandTreeBase {
             return;
         }
 
-        try {
-            URI playerData = ModCommand.getPlayerURI(playerMP);
-            URI playerDataDate = URIUtils.resolve(playerData, "date/");
-
-            HttpEntity entity = null;
-
-            boolean dataExists;
+        CompletableFuture.runAsync(() -> {
             try {
-                final HttpUriRequest req = new HttpHead(playerData);
-                final HttpClientContext context = HttpClientContext.create();
-                final HttpResponse response = Downloader.downloader.client.execute(req, context);
-                entity = response.getEntity();
+                URI playerData = ModCommand.getPlayerURI(playerMP);
+                URI playerDataDate = URIUtils.resolve(playerData, "date/");
 
-                final int statusCode = response.getStatusLine().getStatusCode();
-                dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
-            } finally {
-                EntityUtils.consume(entity);
-            }
+                HttpEntity entity = null;
 
-            if (dataExists) {
-                String date = "<Unknown>";
+                boolean dataExists;
                 try {
-                    final HttpUriRequest req = new HttpGet(playerDataDate);
+                    final HttpUriRequest req = new HttpHead(playerData);
                     final HttpClientContext context = HttpClientContext.create();
                     final HttpResponse response = Downloader.downloader.client.execute(req, context);
                     entity = response.getEntity();
 
                     final int statusCode = response.getStatusLine().getStatusCode();
-                    if (statusCode == HttpStatus.SC_OK) {
-                        String dateText = IOUtils.toString(entity.getContent(), Charsets.UTF_8);
-                        date = new SimpleDateFormat(ModConfig.messages.checkDataDateMessageFormat).format(new Date(NumberUtils.toLong(dateText)));
-                    }
+                    dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
                 } finally {
                     EntityUtils.consume(entity);
                 }
 
-                playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkExistsMessage.replace("@@DATE@@", date)), playerMP));
-            } else {
-                playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkNotExistsMessage), playerMP));
+                if (dataExists) {
+                    String date = "<Unknown>";
+                    try {
+                        final HttpUriRequest req = new HttpGet(playerDataDate);
+                        final HttpClientContext context = HttpClientContext.create();
+                        final HttpResponse response = Downloader.downloader.client.execute(req, context);
+                        entity = response.getEntity();
+
+                        final int statusCode = response.getStatusLine().getStatusCode();
+                        if (statusCode == HttpStatus.SC_OK) {
+                            String dateText = IOUtils.toString(entity.getContent(), Charsets.UTF_8);
+                            date = new SimpleDateFormat(ModConfig.messages.checkDataDateMessageFormat)
+                                    .format(new Date(NumberUtils.toLong(dateText)));
+                        }
+                    } finally {
+                        EntityUtils.consume(entity);
+                    }
+
+                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                            ModConfig.messages.checkExistsMessage.replace("@@DATE@@", date)));
+                } else {
+                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                            ModConfig.messages.checkNotExistsMessage));
+                }
+
+            } catch (Exception e) {
+                Log.log.warn("Failed to check", e);
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.checkFailedMessage));
+                throw new CancellationException();
             }
 
-        } catch (IOException e) {
-            throw new CommandException(ModConfig.messages.checkFailedMessage, e);
-        }
+        });
     }
 }

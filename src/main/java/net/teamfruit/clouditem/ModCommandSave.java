@@ -9,8 +9,9 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentUtils;
+import net.minecraftforge.common.util.Constants;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -24,8 +25,10 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.util.EntityUtils;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URI;
+import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 
 public class ModCommandSave extends CommandBase {
     @Override
@@ -54,72 +57,115 @@ public class ModCommandSave extends CommandBase {
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
 
+        URI playerData;
         try {
-            URI playerData = ModCommand.getPlayerURI(playerMP);
-
-            HttpEntity entity = null;
+            playerData = ModCommand.getPlayerURI(playerMP);
 
             if (playerMP.inventory.isEmpty()) {
-                playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                        ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkLocalNotExistsMessage), playerMP));
+                playerMP.sendMessage(ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkLocalNotExistsMessage));
                 return;
             }
-
-            boolean dataExists;
-            try {
-                final HttpUriRequest req = new HttpHead(playerData);
-                final HttpClientContext context = HttpClientContext.create();
-                final HttpResponse response = Downloader.downloader.client.execute(req, context);
-                entity = response.getEntity();
-
-                final int statusCode = response.getStatusLine().getStatusCode();
-                dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
-            } finally {
-                EntityUtils.consume(entity);
-            }
-
-            if (dataExists) {
-                if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
-                    playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                            ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadOverwriteMessage), playerMP));
-                    return;
-                }
-            }
-
-            playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadBeginMessage), playerMP));
-
-            NBTTagCompound tags = new NBTTagCompound();
-            NBTTagList tagList = new NBTTagList();
-            playerMP.inventory.writeToNBT(tagList);
-            tags.setTag("inventory", tagList);
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            CompressedStreamTools.writeCompressed(tags, output);
-
-            try {
-                final HttpPut req = new HttpPut(playerData);
-                MultipartEntityBuilder multipart = MultipartEntityBuilder.create();
-                multipart.addBinaryBody("player.dat", output.toByteArray(), ContentType.APPLICATION_OCTET_STREAM, "nbt");
-                req.setEntity(multipart.build());
-                final HttpClientContext context = HttpClientContext.create();
-                final HttpResponse response = Downloader.downloader.client.execute(req, context);
-                entity = response.getEntity();
-
-                final int statusCode = response.getStatusLine().getStatusCode();
-                if (!(statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT))
-                    throw new HttpResponseException(statusCode, "Failed to upload");
-            } finally {
-                EntityUtils.consume(entity);
-            }
-
-            playerMP.inventory.clear();
-            playerMP.inventory.markDirty();
-
-            playerMP.sendMessage(TextComponentUtils.processComponent(server,
-                    ITextComponent.Serializer.jsonToComponent(ModConfig.messages.uploadEndMessage), playerMP));
-
-        } catch (IOException e) {
-            throw new CommandException(ModConfig.messages.uploadFailedMessage, e);
+        } catch (Exception e) {
+            Log.log.warn("Failed to upload", e);
+            ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                    ModConfig.messages.uploadFailedMessage));
+            return;
         }
+
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpEntity entity = null;
+
+                boolean dataExists;
+                try {
+                    final HttpUriRequest req = new HttpHead(playerData);
+                    final HttpClientContext context = HttpClientContext.create();
+                    final HttpResponse response = Downloader.downloader.client.execute(req, context);
+                    entity = response.getEntity();
+
+                    final int statusCode = response.getStatusLine().getStatusCode();
+                    dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
+                } finally {
+                    EntityUtils.consume(entity);
+                }
+
+                return dataExists;
+            } catch (Exception e) {
+                Log.log.warn("Failed to upload", e);
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.uploadFailedMessage));
+                throw new CancellationException();
+            }
+
+        }).thenApplyAsync(dataExists -> {
+            try {
+                if (dataExists) {
+                    if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
+                        ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                                ModConfig.messages.uploadOverwriteMessage));
+                        throw new CancellationException();
+                    }
+                }
+
+                NBTTagCompound tags = new NBTTagCompound();
+                NBTTagList tagList = new NBTTagList();
+                playerMP.inventory.writeToNBT(tagList);
+                tags.setTag("inventory", tagList);
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                CompressedStreamTools.writeCompressed(tags, output);
+
+                playerMP.inventory.clear();
+                playerMP.inventory.markDirty();
+
+                return Pair.of(output.toByteArray(), tags);
+            } catch (Exception e) {
+                Log.log.warn("Failed to upload", e);
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.uploadFailedMessage));
+                throw new CancellationException();
+            }
+
+        }, ServerThreadExecutor.INSTANCE).thenApplyAsync(out -> {
+            try {
+                HttpEntity entity = null;
+
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.uploadBeginMessage));
+
+                try {
+                    final HttpPut req = new HttpPut(playerData);
+                    MultipartEntityBuilder multipart = MultipartEntityBuilder.create();
+                    multipart.addBinaryBody("player.dat", out.getLeft(), ContentType.APPLICATION_OCTET_STREAM, "nbt");
+                    req.setEntity(multipart.build());
+                    final HttpClientContext context = HttpClientContext.create();
+                    final HttpResponse response = Downloader.downloader.client.execute(req, context);
+                    entity = response.getEntity();
+
+                    final int statusCode = response.getStatusLine().getStatusCode();
+                    if (!(statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT))
+                        throw new HttpResponseException(statusCode, "Failed to upload");
+                } finally {
+                    EntityUtils.consume(entity);
+                }
+
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.uploadEndMessage));
+
+                return Optional.<NBTTagCompound>empty();
+
+            } catch (Exception e) {
+                Log.log.warn("Failed to upload", e);
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.uploadFailedMessage));
+                return Optional.ofNullable(out.getRight());
+            }
+
+        }).thenAcceptAsync(revert -> {
+            revert.ifPresent(tags -> {
+                playerMP.inventory.readFromNBT(tags.getTagList("inventory", Constants.NBT.TAG_COMPOUND));
+                playerMP.inventory.markDirty();
+            });
+
+        }, ServerThreadExecutor.INSTANCE);
     }
 }
