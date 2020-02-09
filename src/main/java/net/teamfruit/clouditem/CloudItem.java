@@ -5,8 +5,10 @@ import net.minecraftforge.fml.common.event.*;
 
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.teamfruit.clouditem.command.ModCommand;
+import net.teamfruit.clouditem.command.ModCommandLoad;
 import net.teamfruit.clouditem.util.ServerThreadExecutor;
 
 @Mod(modid = Reference.MODID, name = Reference.NAME, version = Reference.VERSION, acceptableRemoteVersions = "*")
@@ -39,5 +41,11 @@ public class CloudItem {
 		if(event.phase == TickEvent.Phase.END) {
 			ServerThreadExecutor.INSTANCE.executeQueuedTaskImmediately();
 		}
+	}
+
+	@SubscribeEvent
+	public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+		if (event.player.inventory.isEmpty())
+			ModCommandLoad.execute(event.player, false, true);
 	}
 }

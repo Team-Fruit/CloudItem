@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.ITextComponent;
@@ -63,13 +64,13 @@ public class ModCommand extends CommandTreeBase {
         addSubcommand(new CommandTreeHelp(this));
     }
 
-    public static URI getPlayerURI(EntityPlayerMP playerMP) {
+    public static URI getPlayerURI(EntityPlayer playerMP) {
         URI entrypoint = URI.create(ModConfig.api.entrypoint);
         URI playerEntrypoint = URIUtils.resolve(entrypoint, "v1/players/");
         return URIUtils.resolve(playerEntrypoint, playerMP.getUniqueID().toString() + "/");
     }
 
-    public static void sendMessage(EntityPlayerMP playerMP, ITextComponent message) {
+    public static void sendMessage(EntityPlayer playerMP, ITextComponent message) {
         CompletableFuture.runAsync(() -> {
             playerMP.sendMessage(message);
         }, ServerThreadExecutor.INSTANCE);
@@ -99,13 +100,16 @@ public class ModCommand extends CommandTreeBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
-
         if (args.length != 0) {
             super.execute(server, sender, args);
             return;
         }
 
+        EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
+        execute(playerMP, false, false);
+    }
+
+    public static void execute(EntityPlayerMP playerMP, boolean force, boolean quiet) {
         CompletableFuture.runAsync(() -> {
             try {
                 URI playerData = ModCommand.getPlayerURI(playerMP);

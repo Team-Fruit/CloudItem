@@ -3,6 +3,7 @@ package net.teamfruit.clouditem.command;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
@@ -55,14 +56,19 @@ public class ModCommandLoad extends CommandBase {
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
+        boolean force = (args.length >= 1 && StringUtils.equals(args[0], "force"));
+        execute(playerMP, force, false);
+    }
 
+    public static void execute(EntityPlayer playerMP, boolean force, boolean quiet) {
         URI playerData;
         try {
             playerData = ModCommand.getPlayerURI(playerMP);
         } catch (Exception e) {
-            Log.log.warn("Failed to upload", e);
-            ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                    ModConfig.messages.uploadFailedMessage));
+            Log.log.warn("Failed to download", e);
+            if (!quiet)
+                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.downloadFailedMessage));
             return;
         }
 
@@ -84,21 +90,24 @@ public class ModCommandLoad extends CommandBase {
                 }
 
                 if (!dataExists) {
-                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                            ModConfig.messages.checkNotExistsMessage));
+                    if (!quiet)
+                        ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                                ModConfig.messages.checkNotExistsMessage));
                     throw new CancellationException();
                 }
 
                 if (!playerMP.inventory.isEmpty()) {
-                    if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
-                        ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                                ModConfig.messages.downloadOverwriteMessage));
+                    if (!force) {
+                        if (!quiet)
+                            ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                                    ModConfig.messages.downloadOverwriteMessage));
                         throw new CancellationException();
                     }
                 }
 
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                        ModConfig.messages.downloadBeginMessage));
+                if (!quiet)
+                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                            ModConfig.messages.downloadBeginMessage));
 
                 NBTTagCompound tags;
                 try {
@@ -129,8 +138,9 @@ public class ModCommandLoad extends CommandBase {
                     EntityUtils.consume(entity);
                 }
 
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                        ModConfig.messages.downloadEndMessage));
+                if (!quiet)
+                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                            ModConfig.messages.downloadEndMessage));
 
                 return tags;
 

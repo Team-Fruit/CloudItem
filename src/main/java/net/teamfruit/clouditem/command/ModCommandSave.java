@@ -3,6 +3,7 @@ package net.teamfruit.clouditem.command;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
@@ -60,7 +61,11 @@ public class ModCommandSave extends CommandBase {
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
+        boolean force = (args.length >= 1 && StringUtils.equals(args[0], "force"));
+        execute(playerMP, force, false);
+    }
 
+    public static void execute(EntityPlayer playerMP, boolean force, boolean quiet) {
         URI playerData;
         try {
             playerData = ModCommand.getPlayerURI(playerMP);
@@ -104,7 +109,7 @@ public class ModCommandSave extends CommandBase {
         }).thenApplyAsync(dataExists -> {
             try {
                 if (dataExists) {
-                    if (!(args.length >= 1 && StringUtils.equals(args[0], "force"))) {
+                    if (!force) {
                         ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
                                 ModConfig.messages.uploadOverwriteMessage));
                         throw new CancellationException();
@@ -141,7 +146,7 @@ public class ModCommandSave extends CommandBase {
                 try {
                     final HttpPut req = new HttpPut(playerData);
                     MultipartEntityBuilder multipart = MultipartEntityBuilder.create();
-                    multipart.addBinaryBody("player.dat", out.getLeft(), ContentType.APPLICATION_OCTET_STREAM, "nbt");
+                    multipart.addBinaryBody("nbt", out.getLeft(), ContentType.APPLICATION_OCTET_STREAM, "nbt.dat");
                     req.setEntity(multipart.build());
                     final HttpClientContext context = HttpClientContext.create();
                     final HttpResponse response = Downloader.downloader.client.execute(req, context);
