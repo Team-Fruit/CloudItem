@@ -117,8 +117,8 @@ public class ModCommand extends CommandTreeBase {
         execute(sender, playerMP, false);
     }
 
-    public static void execute(ICommandSender sender, EntityPlayerMP playerMP, boolean force) {
-        CompletableFuture.runAsync(() -> {
+    public static CompletableFuture<Boolean> execute(ICommandSender sender, EntityPlayerMP playerMP, boolean force) {
+        return CompletableFuture.supplyAsync(() -> {
             try {
                 URI playerData = ModCommand.getPlayerURI(playerMP);
                 URI playerDataDate = URIUtils.resolve(playerData, "date/");
@@ -163,6 +163,8 @@ public class ModCommand extends CommandTreeBase {
                             ModConfig.messages.checkNotExistsMessage));
                 }
 
+                return true;
+
             } catch (Exception e) {
                 Log.log.warn("Failed to check", e);
                 ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
@@ -170,6 +172,6 @@ public class ModCommand extends CommandTreeBase {
                 throw new CancellationException();
             }
 
-        });
+        }).exceptionally(t -> false);
     }
 }

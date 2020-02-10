@@ -60,7 +60,7 @@ public class ModCommandLoad extends CommandBase {
         execute(sender, playerMP, force);
     }
 
-    public static void execute(ICommandSender sender, EntityPlayer playerMP, boolean force) {
+    public static CompletableFuture<Boolean> execute(ICommandSender sender, EntityPlayer playerMP, boolean force) {
         URI playerData;
         try {
             playerData = ModCommand.getPlayerURI(playerMP);
@@ -68,10 +68,10 @@ public class ModCommandLoad extends CommandBase {
             Log.log.warn("Failed to download", e);
             ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                     ModConfig.messages.downloadFailedMessage));
-            return;
+            return CompletableFuture.completedFuture(true);
         }
 
-        CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpEntity entity = null;
 
@@ -148,10 +148,13 @@ public class ModCommandLoad extends CommandBase {
                 throw new CancellationException();
             }
 
-        }).thenAcceptAsync(tags -> {
+        }).thenApplyAsync(tags -> {
             try {
                 playerMP.inventory.readFromNBT(tags.getTagList("inventory", Constants.NBT.TAG_COMPOUND));
                 playerMP.inventory.markDirty();
+
+                return true;
+
             } catch (Exception e) {
                 Log.log.warn("Failed to download", e);
                 ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
@@ -159,6 +162,6 @@ public class ModCommandLoad extends CommandBase {
                 throw new CancellationException();
             }
 
-        }, ServerThreadExecutor.INSTANCE);
+        }, ServerThreadExecutor.INSTANCE).exceptionally(t -> false);
     }
 }

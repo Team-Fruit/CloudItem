@@ -65,23 +65,23 @@ public class ModCommandSave extends CommandBase {
         execute(sender, playerMP, force);
     }
 
-    public static void execute(ICommandSender sender, EntityPlayer playerMP, boolean force) {
+    public static CompletableFuture<Boolean> execute(ICommandSender sender, EntityPlayer playerMP, boolean force) {
         URI playerData;
         try {
             playerData = ModCommand.getPlayerURI(playerMP);
 
             if (playerMP.inventory.isEmpty()) {
                 ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkLocalNotExistsMessage));
-                return;
+                return CompletableFuture.completedFuture(false);
             }
         } catch (Exception e) {
             Log.log.warn("Failed to upload", e);
             ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                     ModConfig.messages.uploadFailedMessage));
-            return;
+            return CompletableFuture.completedFuture(false);
         }
 
-        CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpEntity entity = null;
 
@@ -171,12 +171,14 @@ public class ModCommandSave extends CommandBase {
                 return Optional.ofNullable(out.getRight());
             }
 
-        }).thenAcceptAsync(revert -> {
+        }).thenApplyAsync(revert -> {
             revert.ifPresent(tags -> {
                 playerMP.inventory.readFromNBT(tags.getTagList("inventory", Constants.NBT.TAG_COMPOUND));
                 playerMP.inventory.markDirty();
             });
 
-        }, ServerThreadExecutor.INSTANCE);
+            return !revert.isPresent();
+
+        }, ServerThreadExecutor.INSTANCE).exceptionally(t -> false);
     }
 }

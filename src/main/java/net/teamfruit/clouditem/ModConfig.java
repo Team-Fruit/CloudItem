@@ -30,6 +30,10 @@ public class ModConfig {
 
     public static class Messages {
 
+        @Config.Name("Login Load Message")
+        @Config.Comment({ "the text that is shown when a player logged in and items are loaded", "must be formatted in /tellraw nbt format" })
+        public String loginLoadedMessage = "{\"text\":\"Cloud Inventory is successfully loaded.\"}";
+
         @Config.Name("Data Available Message")
         @Config.Comment({ "the text that is shown when a player data available on Cloud", "must be formatted in /tellraw nbt format" })
         public String checkExistsMessage = "{\"text\":\"Your player data is available on Cloud. [@@DATE@@] Type '/cloud load' to use it!\"}";

@@ -1,5 +1,6 @@
 package net.teamfruit.clouditem;
 
+import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.event.*;
 
@@ -49,6 +50,10 @@ public class CloudItem {
 	@SubscribeEvent
 	public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
 		if (event.player.getHealth() > 0 && event.player.inventory.isEmpty())
-			ModCommandLoad.execute(NullCommandSender.INSTANCE, event.player, false);
+			ModCommandLoad.execute(NullCommandSender.INSTANCE, event.player, false).thenAcceptAsync(success -> {
+				if (success)
+					ModCommand.sendMessage(event.player, ITextComponent.Serializer.jsonToComponent(
+							ModConfig.messages.loginLoadedMessage));
+			});
 	}
 }
