@@ -18,7 +18,7 @@ public class NullCommandSender implements ICommandSender {
 
     @Override
     public boolean canUseCommand(int permLevel, String commandName) {
-        return true;
+        return permLevel <= 2;
     }
 
     @Override

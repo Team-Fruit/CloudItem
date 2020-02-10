@@ -43,7 +43,7 @@ public class ModCommandSave extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/cloud save";
+        return "/cloud save [force]";
     }
 
     public final ModCommand.Level level = ModCommand.Level.ALL;

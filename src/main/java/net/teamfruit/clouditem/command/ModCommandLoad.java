@@ -38,7 +38,7 @@ public class ModCommandLoad extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/cloud load";
+        return "/cloud load [force]";
     }
 
     public final ModCommand.Level level = ModCommand.Level.ALL;
