@@ -57,18 +57,17 @@ public class ModCommandLoad extends CommandBase {
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
         boolean force = (args.length >= 1 && StringUtils.equals(args[0], "force"));
-        execute(playerMP, force, false);
+        execute(sender, playerMP, force);
     }
 
-    public static void execute(EntityPlayer playerMP, boolean force, boolean quiet) {
+    public static void execute(ICommandSender sender, EntityPlayer playerMP, boolean force) {
         URI playerData;
         try {
             playerData = ModCommand.getPlayerURI(playerMP);
         } catch (Exception e) {
             Log.log.warn("Failed to download", e);
-            if (!quiet)
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                        ModConfig.messages.downloadFailedMessage));
+            ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
+                    ModConfig.messages.downloadFailedMessage));
             return;
         }
 
@@ -90,24 +89,21 @@ public class ModCommandLoad extends CommandBase {
                 }
 
                 if (!dataExists) {
-                    if (!quiet)
-                        ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                                ModConfig.messages.checkNotExistsMessage));
+                    ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
+                            ModConfig.messages.checkNotExistsMessage));
                     throw new CancellationException();
                 }
 
                 if (!playerMP.inventory.isEmpty()) {
                     if (!force) {
-                        if (!quiet)
-                            ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                                    ModConfig.messages.downloadOverwriteMessage));
+                        ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
+                                ModConfig.messages.downloadOverwriteMessage));
                         throw new CancellationException();
                     }
                 }
 
-                if (!quiet)
-                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                            ModConfig.messages.downloadBeginMessage));
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.downloadBeginMessage));
 
                 NBTTagCompound tags;
                 try {
@@ -138,9 +134,8 @@ public class ModCommandLoad extends CommandBase {
                     EntityUtils.consumeQuietly(entity);
                 }
 
-                if (!quiet)
-                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
-                            ModConfig.messages.downloadEndMessage));
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
+                        ModConfig.messages.downloadEndMessage));
 
                 return tags;
 
@@ -148,7 +143,7 @@ public class ModCommandLoad extends CommandBase {
                 throw e;
             } catch (Exception e) {
                 Log.log.warn("Failed to download", e);
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                         ModConfig.messages.downloadFailedMessage));
                 throw new CancellationException();
             }
@@ -159,7 +154,7 @@ public class ModCommandLoad extends CommandBase {
                 playerMP.inventory.markDirty();
             } catch (Exception e) {
                 Log.log.warn("Failed to download", e);
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                         ModConfig.messages.downloadFailedMessage));
                 throw new CancellationException();
             }

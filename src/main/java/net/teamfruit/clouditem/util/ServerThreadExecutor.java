@@ -2,6 +2,7 @@ package net.teamfruit.clouditem.util;
 
 import com.google.common.util.concurrent.AbstractListeningExecutorService;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
@@ -17,12 +18,16 @@ public final class ServerThreadExecutor extends AbstractListeningExecutorService
 
     private Deque<Runnable> queue = new ConcurrentLinkedDeque<>();
 
+    public @Nullable Thread serverThread;
+
     @Override
     public void execute(Runnable runnable) {
         queue.offer(runnable);
     }
 
     public void executeQueuedTaskImmediately() {
+        if (serverThread == null)
+            serverThread = Thread.currentThread();
         Runnable run;
         while((run = queue.poll()) != null)
             run.run();

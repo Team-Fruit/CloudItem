@@ -75,10 +75,13 @@ public class ModCommand extends CommandTreeBase {
         return URIUtils.resolve(playerEntrypoint, playerMP.getUniqueID().toString() + "/");
     }
 
-    public static void sendMessage(EntityPlayer playerMP, ITextComponent message) {
-        CompletableFuture.runAsync(() -> {
-            playerMP.sendMessage(message);
-        }, ServerThreadExecutor.INSTANCE);
+    public static void sendMessage(ICommandSender sender, ITextComponent message) {
+        if (Thread.currentThread().equals(ServerThreadExecutor.INSTANCE.serverThread))
+            sender.sendMessage(message);
+        else
+            CompletableFuture.runAsync(() -> {
+                sender.sendMessage(message);
+            }, ServerThreadExecutor.INSTANCE);
     }
 
     @Override
@@ -111,10 +114,10 @@ public class ModCommand extends CommandTreeBase {
         }
 
         EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
-        execute(playerMP, false, false);
+        execute(sender, playerMP, false);
     }
 
-    public static void execute(EntityPlayerMP playerMP, boolean force, boolean quiet) {
+    public static void execute(ICommandSender sender, EntityPlayerMP playerMP, boolean force) {
         CompletableFuture.runAsync(() -> {
             try {
                 URI playerData = ModCommand.getPlayerURI(playerMP);
@@ -153,16 +156,16 @@ public class ModCommand extends CommandTreeBase {
                         EntityUtils.consumeQuietly(entity);
                     }
 
-                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                    ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                             ModConfig.messages.checkExistsMessage.replace("@@DATE@@", date)));
                 } else {
-                    ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                    ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                             ModConfig.messages.checkNotExistsMessage));
                 }
 
             } catch (Exception e) {
                 Log.log.warn("Failed to check", e);
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                         ModConfig.messages.checkFailedMessage));
                 throw new CancellationException();
             }

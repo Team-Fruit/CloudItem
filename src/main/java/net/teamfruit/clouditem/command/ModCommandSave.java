@@ -62,21 +62,21 @@ public class ModCommandSave extends CommandBase {
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
         boolean force = (args.length >= 1 && StringUtils.equals(args[0], "force"));
-        execute(playerMP, force, false);
+        execute(sender, playerMP, force);
     }
 
-    public static void execute(EntityPlayer playerMP, boolean force, boolean quiet) {
+    public static void execute(ICommandSender sender, EntityPlayer playerMP, boolean force) {
         URI playerData;
         try {
             playerData = ModCommand.getPlayerURI(playerMP);
 
             if (playerMP.inventory.isEmpty()) {
-                playerMP.sendMessage(ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkLocalNotExistsMessage));
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkLocalNotExistsMessage));
                 return;
             }
         } catch (Exception e) {
             Log.log.warn("Failed to upload", e);
-            ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+            ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                     ModConfig.messages.uploadFailedMessage));
             return;
         }
@@ -101,7 +101,7 @@ public class ModCommandSave extends CommandBase {
                 return dataExists;
             } catch (Exception e) {
                 Log.log.warn("Failed to upload", e);
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                         ModConfig.messages.uploadFailedMessage));
                 throw new CancellationException();
             }
@@ -110,7 +110,7 @@ public class ModCommandSave extends CommandBase {
             try {
                 if (dataExists) {
                     if (!force) {
-                        ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                        ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                                 ModConfig.messages.uploadOverwriteMessage));
                         throw new CancellationException();
                     }
@@ -131,7 +131,7 @@ public class ModCommandSave extends CommandBase {
                 throw e;
             } catch (Exception e) {
                 Log.log.warn("Failed to upload", e);
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                         ModConfig.messages.uploadFailedMessage));
                 throw new CancellationException();
             }
@@ -140,7 +140,7 @@ public class ModCommandSave extends CommandBase {
             try {
                 HttpEntity entity = null;
 
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                         ModConfig.messages.uploadBeginMessage));
 
                 try {
@@ -159,14 +159,14 @@ public class ModCommandSave extends CommandBase {
                     EntityUtils.consumeQuietly(entity);
                 }
 
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                         ModConfig.messages.uploadEndMessage));
 
                 return Optional.<NBTTagCompound>empty();
 
             } catch (Exception e) {
                 Log.log.warn("Failed to upload", e);
-                ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
+                ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(
                         ModConfig.messages.uploadFailedMessage));
                 return Optional.ofNullable(out.getRight());
             }

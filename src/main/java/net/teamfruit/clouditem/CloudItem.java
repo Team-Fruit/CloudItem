@@ -9,6 +9,7 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.teamfruit.clouditem.command.ModCommand;
 import net.teamfruit.clouditem.command.ModCommandLoad;
+import net.teamfruit.clouditem.util.NullCommandSender;
 import net.teamfruit.clouditem.util.ServerThreadExecutor;
 
 import java.util.concurrent.CompletableFuture;
@@ -48,6 +49,6 @@ public class CloudItem {
 	@SubscribeEvent
 	public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
 		if (event.player.getHealth() > 0 && event.player.inventory.isEmpty())
-			ModCommandLoad.execute(event.player, false, true);
+			ModCommandLoad.execute(NullCommandSender.INSTANCE, event.player, false);
 	}
 }
