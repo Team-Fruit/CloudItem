@@ -86,7 +86,7 @@ public class ModCommandLoad extends CommandBase {
                     final int statusCode = response.getStatusLine().getStatusCode();
                     dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
                 } finally {
-                    EntityUtils.consume(entity);
+                    EntityUtils.consumeQuietly(entity);
                 }
 
                 if (!dataExists) {
@@ -122,7 +122,7 @@ public class ModCommandLoad extends CommandBase {
 
                     tags = CompressedStreamTools.readCompressed(entity.getContent());
                 } finally {
-                    EntityUtils.consume(entity);
+                    EntityUtils.consumeQuietly(entity);
                 }
 
                 try {
@@ -135,7 +135,7 @@ public class ModCommandLoad extends CommandBase {
                     if (!(statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT))
                         throw new HttpResponseException(statusCode, "Failed to delete");
                 } finally {
-                    EntityUtils.consume(entity);
+                    EntityUtils.consumeQuietly(entity);
                 }
 
                 if (!quiet)

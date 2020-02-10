@@ -42,14 +42,12 @@ public class ModCommandAdminReload extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
-
         File configDir = Loader.instance().getConfigDir();
         File configFile = new File(configDir, Reference.MODID + ".cfg");
         Map<String, Configuration> CONFIGS = ReflectionHelper.getPrivateValue(ConfigManager.class, null, "CONFIGS");
         CONFIGS.remove(configFile.getAbsolutePath());
         ConfigManager.load(Reference.MODID, Config.Type.INSTANCE);
 
-        playerMP.sendMessage(new TextComponentString("Config Reloaded"));
+        sender.sendMessage(new TextComponentString("Config Reloaded"));
     }
 }

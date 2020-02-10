@@ -40,7 +40,7 @@ public class CloudItem {
 
 	@SubscribeEvent
 	public void onTick(TickEvent.ServerTickEvent event) {
-		if(event.phase == TickEvent.Phase.END) {
+		if (event.phase == TickEvent.Phase.END) {
 			ServerThreadExecutor.INSTANCE.executeQueuedTaskImmediately();
 		}
 	}

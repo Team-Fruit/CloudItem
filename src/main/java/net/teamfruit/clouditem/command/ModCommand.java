@@ -132,7 +132,7 @@ public class ModCommand extends CommandTreeBase {
                     final int statusCode = response.getStatusLine().getStatusCode();
                     dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
                 } finally {
-                    EntityUtils.consume(entity);
+                    EntityUtils.consumeQuietly(entity);
                 }
 
                 if (dataExists) {
@@ -150,7 +150,7 @@ public class ModCommand extends CommandTreeBase {
                                     .format(new Date(NumberUtils.toLong(dateText)));
                         }
                     } finally {
-                        EntityUtils.consume(entity);
+                        EntityUtils.consumeQuietly(entity);
                     }
 
                     ModCommand.sendMessage(playerMP, ITextComponent.Serializer.jsonToComponent(
