@@ -66,11 +66,13 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
     provided "com.google.errorprone:error_prone_annotations:2.1.0"
+    shadow ('org.apache.httpcomponents:httpcore:4.3.2') { transitive=false }
+    shadow ('org.apache.httpcomponents:httpclient:4.3.3') { transitive=false }
     shadow ('org.apache.httpcomponents:httpmime:4.3.3') { transitive=false }
 }
 
 shadowJar {
-    relocate 'org.apache.http.entity.mime', 'net.teamfruit.clouditem.lib.org.apache.http.entity.mime'
+    relocate 'org.apache.http', 'net.teamfruit.clouditem.lib.org.apache.http'
     classifier 'universal'
     configurations = [project.configurations.shadow]
 }

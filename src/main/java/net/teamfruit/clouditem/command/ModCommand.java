@@ -36,9 +36,8 @@ public class ModCommand extends CommandTreeBase {
     public static class Level
     {
         public static final Level ALL = new Level(0, (server, sender, command) -> true);
-        public static final Level OP_OR_SP = new Level(2, (server, sender, command) -> server.isSinglePlayer() || sender.canUseCommand(2, command.getName()));
+        public static final Level SP = new Level(2, (server, sender, command) -> server.isSinglePlayer());
         public static final Level OP = new Level(2, (server, sender, command) -> sender.canUseCommand(2, command.getName()));
-        public static final Level STRONG_OP_OR_SP = new Level(4, (server, sender, command) -> server.isSinglePlayer() || sender.canUseCommand(4, command.getName()));
         public static final Level STRONG_OP = new Level(4, (server, sender, command) -> sender.canUseCommand(4, command.getName()));
         public static final Level SERVER = new Level(4, (server, sender, command) -> sender instanceof MinecraftServer);
 
@@ -54,6 +53,12 @@ public class ModCommand extends CommandTreeBase {
         {
             requiredPermissionLevel = l;
             permissionChecker = p;
+        }
+
+        public Level or(Level other) {
+            return new Level(requiredPermissionLevel, (server, sender, command)
+                    -> permissionChecker.checkPermission(server, sender, command)
+                    || other.permissionChecker.checkPermission(server, sender, command));
         }
     }
 

@@ -51,7 +51,7 @@ public class ModCommandAdmin extends CommandTreeBase {
         return "/cloud admin [reload]";
     }
 
-    public final ModCommand.Level level = ModCommand.Level.OP;
+    public final ModCommand.Level level = ModCommand.Level.OP.or(ModCommand.Level.SERVER);
 
     @Override
     public int getRequiredPermissionLevel() {

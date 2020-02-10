@@ -11,6 +11,8 @@ import net.teamfruit.clouditem.command.ModCommand;
 import net.teamfruit.clouditem.command.ModCommandLoad;
 import net.teamfruit.clouditem.util.ServerThreadExecutor;
 
+import java.util.concurrent.CompletableFuture;
+
 @Mod(modid = Reference.MODID, name = Reference.NAME, version = Reference.VERSION, acceptableRemoteVersions = "*")
 public class CloudItem {
 	@Mod.EventHandler
@@ -45,7 +47,7 @@ public class CloudItem {
 
 	@SubscribeEvent
 	public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
-		if (event.player.inventory.isEmpty())
+		if (event.player.getHealth() > 0 && event.player.inventory.isEmpty())
 			ModCommandLoad.execute(event.player, false, true);
 	}
 }
