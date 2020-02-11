@@ -29,6 +29,7 @@ import org.apache.http.util.EntityUtils;
 import java.net.URI;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ModCommandLoad extends CommandBase {
     @Override
@@ -70,6 +71,8 @@ public class ModCommandLoad extends CommandBase {
                     ModConfig.messages.downloadFailedMessage));
             return CompletableFuture.completedFuture(true);
         }
+
+        AtomicBoolean dirtyFlag = new AtomicBoolean();
 
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -152,6 +155,7 @@ public class ModCommandLoad extends CommandBase {
             try {
                 playerMP.inventory.readFromNBT(tags.getTagList("inventory", Constants.NBT.TAG_COMPOUND));
                 playerMP.inventory.markDirty();
+                dirtyFlag.set(true);
 
                 return true;
 
@@ -162,6 +166,12 @@ public class ModCommandLoad extends CommandBase {
                 throw new CancellationException();
             }
 
-        }, ServerThreadExecutor.INSTANCE).exceptionally(t -> false);
+        }, ServerThreadExecutor.INSTANCE).exceptionally(t -> false).thenApplyAsync(success -> {
+            if (dirtyFlag.get())
+                playerMP.world.getSaveHandler().getPlayerNBTManager().writePlayerData(playerMP);
+
+            return success;
+
+        }, ServerThreadExecutor.INSTANCE);
     }
 }

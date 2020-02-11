@@ -34,6 +34,7 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ModCommandSave extends CommandBase {
     @Override
@@ -81,6 +82,8 @@ public class ModCommandSave extends CommandBase {
             return CompletableFuture.completedFuture(false);
         }
 
+        AtomicBoolean dirtyFlag = new AtomicBoolean();
+
         return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpEntity entity = null;
@@ -125,6 +128,7 @@ public class ModCommandSave extends CommandBase {
 
                 playerMP.inventory.clear();
                 playerMP.inventory.markDirty();
+                dirtyFlag.set(true);
 
                 return Pair.of(output.toByteArray(), tags);
             } catch (CancellationException e) {
@@ -175,10 +179,17 @@ public class ModCommandSave extends CommandBase {
             revert.ifPresent(tags -> {
                 playerMP.inventory.readFromNBT(tags.getTagList("inventory", Constants.NBT.TAG_COMPOUND));
                 playerMP.inventory.markDirty();
+                dirtyFlag.set(true);
             });
 
             return !revert.isPresent();
 
-        }, ServerThreadExecutor.INSTANCE).exceptionally(t -> false);
+        }, ServerThreadExecutor.INSTANCE).exceptionally(t -> false).thenApplyAsync(success -> {
+            if (dirtyFlag.get())
+                playerMP.world.getSaveHandler().getPlayerNBTManager().writePlayerData(playerMP);
+
+            return success;
+
+        }, ServerThreadExecutor.INSTANCE);
     }
 }
