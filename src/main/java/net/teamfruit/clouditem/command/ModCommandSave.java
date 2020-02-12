@@ -24,9 +24,9 @@ import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 
 import java.io.ByteArrayOutputStream;
@@ -67,10 +67,11 @@ public class ModCommandSave extends CommandBase {
     }
 
     public static CompletableFuture<Boolean> execute(ICommandSender sender, EntityPlayer playerMP, boolean force) {
+        HttpContext context;
         URI playerData;
         try {
+            context = ModCommand.getClientContext();
             playerData = ModCommand.getPlayerURI(playerMP);
-
             if (playerMP.inventory.isEmpty()) {
                 ModCommand.sendMessage(sender, ITextComponent.Serializer.jsonToComponent(ModConfig.messages.checkLocalNotExistsMessage));
                 return CompletableFuture.completedFuture(false);
@@ -91,7 +92,6 @@ public class ModCommandSave extends CommandBase {
                 boolean dataExists;
                 try {
                     final HttpUriRequest req = new HttpHead(playerData);
-                    final HttpClientContext context = HttpClientContext.create();
                     final HttpResponse response = Downloader.downloader.client.execute(req, context);
                     entity = response.getEntity();
 
@@ -152,7 +152,6 @@ public class ModCommandSave extends CommandBase {
                     MultipartEntityBuilder multipart = MultipartEntityBuilder.create();
                     multipart.addBinaryBody("nbt", out.getLeft(), ContentType.APPLICATION_OCTET_STREAM, "nbt.dat");
                     req.setEntity(multipart.build());
-                    final HttpClientContext context = HttpClientContext.create();
                     final HttpResponse response = Downloader.downloader.client.execute(req, context);
                     entity = response.getEntity();
 

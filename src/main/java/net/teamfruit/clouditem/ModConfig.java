@@ -23,8 +23,12 @@ public class ModConfig {
         @Config.Comment({ "The Entry Point of Cloud API" })
         public String entrypoint = "";
 
+        @Config.Name("Server ID")
+        @Config.Comment({ "An Unique ID of this server" })
+        public String id = "";
+
         @Config.Name("Token")
-        @Config.Comment({ "Not Implemented!" })
+        @Config.Comment({ "A Token bound to Server ID" })
         public String token = "";
     }
 

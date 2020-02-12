@@ -17,13 +17,23 @@ import net.teamfruit.clouditem.util.ServerThreadExecutor;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.AuthCache;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 
 import java.net.URI;
@@ -33,24 +43,21 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 
 public class ModCommand extends CommandTreeBase {
-    public static class Level
-    {
+    public static class Level {
         public static final Level ALL = new Level(0, (server, sender, command) -> true);
         public static final Level SP = new Level(2, (server, sender, command) -> server.isSinglePlayer());
         public static final Level OP = new Level(2, (server, sender, command) -> sender.canUseCommand(2, command.getName()));
         public static final Level STRONG_OP = new Level(4, (server, sender, command) -> sender.canUseCommand(4, command.getName()));
         public static final Level SERVER = new Level(4, (server, sender, command) -> sender instanceof MinecraftServer);
 
-        public interface PermissionChecker
-        {
+        public interface PermissionChecker {
             boolean checkPermission(MinecraftServer server, ICommandSender sender, ICommand command);
         }
 
         public final int requiredPermissionLevel;
         public final PermissionChecker permissionChecker;
 
-        public Level(int l, PermissionChecker p)
-        {
+        public Level(int l, PermissionChecker p) {
             requiredPermissionLevel = l;
             permissionChecker = p;
         }
@@ -73,6 +80,24 @@ public class ModCommand extends CommandTreeBase {
         URI entrypoint = URI.create(ModConfig.api.entrypoint);
         URI playerEntrypoint = URIUtils.resolve(entrypoint, "v1/players/");
         return URIUtils.resolve(playerEntrypoint, playerMP.getUniqueID().toString() + "/");
+    }
+
+    public static HttpClientContext getClientContext() {
+        URI entrypoint = URI.create(ModConfig.api.entrypoint);
+
+        HttpHost httpHost = new HttpHost(entrypoint.getHost(), entrypoint.getPort(), entrypoint.getScheme());
+        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(new AuthScope(httpHost),
+                new UsernamePasswordCredentials(ModConfig.api.id, ModConfig.api.token));
+
+        AuthCache authCache = new BasicAuthCache();
+        authCache.put(httpHost, new BasicScheme());
+
+        HttpClientContext context = HttpClientContext.create();
+        context.setCredentialsProvider(credentialsProvider);
+        context.setAuthCache(authCache);
+
+        return context;
     }
 
     public static void sendMessage(ICommandSender sender, ITextComponent message) {
@@ -120,6 +145,7 @@ public class ModCommand extends CommandTreeBase {
     public static CompletableFuture<Boolean> execute(ICommandSender sender, EntityPlayerMP playerMP, boolean force) {
         return CompletableFuture.supplyAsync(() -> {
             try {
+                HttpContext context = ModCommand.getClientContext();
                 URI playerData = ModCommand.getPlayerURI(playerMP);
                 URI playerDataDate = URIUtils.resolve(playerData, "date/");
 
@@ -128,12 +154,16 @@ public class ModCommand extends CommandTreeBase {
                 boolean dataExists;
                 try {
                     final HttpUriRequest req = new HttpHead(playerData);
-                    final HttpClientContext context = HttpClientContext.create();
                     final HttpResponse response = Downloader.downloader.client.execute(req, context);
                     entity = response.getEntity();
 
                     final int statusCode = response.getStatusLine().getStatusCode();
-                    dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
+                    if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT)
+                        dataExists = true;
+                    else if (statusCode == HttpStatus.SC_NOT_FOUND)
+                        dataExists = false;
+                    else
+                        throw new HttpResponseException(statusCode, "Failed to check");
                 } finally {
                     EntityUtils.consumeQuietly(entity);
                 }
@@ -142,7 +172,6 @@ public class ModCommand extends CommandTreeBase {
                     String date = "<Unknown>";
                     try {
                         final HttpUriRequest req = new HttpGet(playerDataDate);
-                        final HttpClientContext context = HttpClientContext.create();
                         final HttpResponse response = Downloader.downloader.client.execute(req, context);
                         entity = response.getEntity();
 

@@ -23,7 +23,7 @@ import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 
 import java.net.URI;
@@ -62,8 +62,10 @@ public class ModCommandLoad extends CommandBase {
     }
 
     public static CompletableFuture<Boolean> execute(ICommandSender sender, EntityPlayer playerMP, boolean force) {
+        HttpContext context;
         URI playerData;
         try {
+            context = ModCommand.getClientContext();
             playerData = ModCommand.getPlayerURI(playerMP);
         } catch (Exception e) {
             Log.log.warn("Failed to download", e);
@@ -81,12 +83,16 @@ public class ModCommandLoad extends CommandBase {
                 boolean dataExists;
                 try {
                     final HttpUriRequest req = new HttpHead(playerData);
-                    final HttpClientContext context = HttpClientContext.create();
                     final HttpResponse response = Downloader.downloader.client.execute(req, context);
                     entity = response.getEntity();
 
                     final int statusCode = response.getStatusLine().getStatusCode();
-                    dataExists = (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT);
+                    if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_NO_CONTENT)
+                        dataExists = true;
+                    else if (statusCode == HttpStatus.SC_NOT_FOUND)
+                        dataExists = false;
+                    else
+                        throw new HttpResponseException(statusCode, "Failed to check");
                 } finally {
                     EntityUtils.consumeQuietly(entity);
                 }
@@ -111,7 +117,6 @@ public class ModCommandLoad extends CommandBase {
                 NBTTagCompound tags;
                 try {
                     final HttpUriRequest req = new HttpGet(playerData);
-                    final HttpClientContext context = HttpClientContext.create();
                     final HttpResponse response = Downloader.downloader.client.execute(req, context);
                     entity = response.getEntity();
 
@@ -126,7 +131,6 @@ public class ModCommandLoad extends CommandBase {
 
                 try {
                     final HttpUriRequest req = new HttpDelete(playerData);
-                    final HttpClientContext context = HttpClientContext.create();
                     final HttpResponse response = Downloader.downloader.client.execute(req, context);
                     entity = response.getEntity();
 
