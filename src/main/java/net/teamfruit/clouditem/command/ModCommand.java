@@ -4,8 +4,10 @@ import com.google.common.base.Charsets;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.server.command.CommandTreeBase;
@@ -107,6 +109,21 @@ public class ModCommand extends CommandTreeBase {
             CompletableFuture.runAsync(() -> {
                 sender.sendMessage(message);
             }, ServerThreadExecutor.INSTANCE);
+    }
+
+    public static void dropAll(EntityPlayer playerMP) {
+        // All your inventory is belong to us
+        for (int i = 0; i < playerMP.inventory.getSizeInventory(); i++) {
+            ItemStack stackAt = playerMP.inventory.getStackInSlot(i);
+            if (!stackAt.isEmpty()) {
+                EntityItem entityitem = playerMP.entityDropItem(stackAt, 0);
+                if (entityitem != null) {
+                    entityitem.setNoPickupDelay();
+                    entityitem.setOwner(playerMP.getName());
+                }
+                playerMP.inventory.setInventorySlotContents(i, ItemStack.EMPTY);
+            }
+        }
     }
 
     @Override

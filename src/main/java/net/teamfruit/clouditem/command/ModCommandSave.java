@@ -176,6 +176,7 @@ public class ModCommandSave extends CommandBase {
 
         }).thenApplyAsync(revert -> {
             revert.ifPresent(tags -> {
+                ModCommand.dropAll(playerMP);
                 playerMP.inventory.readFromNBT(tags.getTagList("inventory", Constants.NBT.TAG_COMPOUND));
                 playerMP.inventory.markDirty();
                 dirtyFlag.set(true);
